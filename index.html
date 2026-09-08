@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Road to 175</title>
+<meta name="description" content="Daily morning weigh-in tracker.">
+<meta name="theme-color" content="#FFF3E2">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Road to 175">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' fill='%23FFF3E2'/><circle cx='32' cy='30' r='16' fill='%23E8437F'/><rect y='42' width='64' height='3' fill='%23FF7A4D'/><rect y='49' width='64' height='3' fill='%23FFC24A'/></svg>">
+<style>
+  :root{
+    --sand:#FFF3E2; --card:#FFE7CC; --ink:#42285A; --mute:#8A6A94;
+    --magenta:#E8437F; --coral:#FF7A4D; --gold:#FFC24A; --teal:#1D9CA6; --violet:#8B5FBF;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--sand);color:var(--ink);
+    font-family:Futura,"Century Gothic","Avenir Next","Trebuchet MS",sans-serif;
+    -webkit-font-smoothing:antialiased;padding:14px 16px 44px;font-variant-numeric:tabular-nums}
+  .wrap{max-width:520px;margin:0 auto}
+  .eyebrow{font-size:11px;letter-spacing:.22em;color:var(--magenta);font-weight:700}
+  h1{font-weight:700;font-size:34px;letter-spacing:.04em;margin:4px 0 4px;color:var(--ink);line-height:1}
+  h1 span{color:var(--magenta)}
+  .bars{display:flex;height:5px;margin:10px 0 16px;border-radius:3px;overflow:hidden}
+  .bars i{flex:1}
+  svg{width:100%;height:auto;display:block}
+  .scene{margin:0 -4px;border-radius:4px;overflow:hidden;box-shadow:0 6px 0 rgba(232,67,127,.15)}
+  .legend{display:flex;gap:18px;margin:10px 2px 0;font-size:11.5px;color:var(--mute);font-weight:600}
+  .legend i{display:inline-block;width:8px;height:8px;margin-right:6px;transform:rotate(45deg);vertical-align:middle}
+
+  .eta{margin:22px 0 0;padding:16px 18px 18px;background:var(--card);border-radius:4px;
+    border-left:6px solid var(--coral)}
+  .eta .lab{font-size:11px;letter-spacing:.14em;color:var(--mute);font-weight:700;margin-bottom:8px}
+  .eta .date{font-weight:700;font-size:30px;color:var(--ink);line-height:1.05;letter-spacing:.01em}
+  .eta .date.none{font-size:17px;color:var(--mute)}
+  .eta .note{font-size:13px;color:var(--mute);margin-top:9px;line-height:1.5}
+
+  .duel{display:flex;align-items:baseline;gap:16px;margin:20px 0 0}
+  .duel .n{font-weight:700;font-size:38px;color:var(--magenta);line-height:1;letter-spacing:.02em}
+  .duel .n em{font-style:normal;color:var(--mute)}
+  .duel .s{font-size:13px;color:var(--mute);line-height:1.45}
+  .duel .s b{color:var(--teal);font-weight:700}
+  .duel .s b.bad{color:var(--coral)}
+
+  .now{display:flex;align-items:baseline;gap:14px;margin:22px 0 0}
+  .big{font-weight:700;font-size:58px;line-height:.9;color:var(--ink);letter-spacing:-.01em}
+  .since{font-size:13.5px;color:var(--mute);line-height:1.4}
+  .since b{color:var(--ink);font-weight:700}
+
+  .verdict{margin:16px 0 0;font-size:14.5px;line-height:1.55;color:var(--mute)}
+  .verdict .lead{color:var(--ink);font-weight:700}
+  .verdict.warn .lead{color:var(--coral)}
+  .verdict.good .lead{color:var(--teal)}
+  .boss{margin:14px 0 0;padding:13px 15px;background:var(--card);border-left:6px solid var(--gold);
+    border-radius:4px;font-size:13.5px;line-height:1.5;color:var(--mute)}
+  .boss b{color:var(--ink)}
+  .sealed{font-size:13px;color:var(--teal);margin:12px 0 0;line-height:1.5;font-weight:600}
+
+  form{display:flex;gap:8px;margin-top:22px}
+  input{flex:1;min-width:0;background:#fff;border:2px solid #F0D3B6;color:var(--ink);
+    font:inherit;font-weight:700;font-size:24px;padding:10px 14px;border-radius:4px}
+  input:focus{outline:none;border-color:var(--magenta)}
+  input::placeholder{color:#D5B79C}
+  button.log{background:var(--magenta);color:#fff;border:0;border-radius:4px;font:inherit;
+    font-size:14px;font-weight:700;letter-spacing:.14em;padding:0 22px;cursor:pointer;
+    box-shadow:0 4px 0 #B92B60}
+  button.log:active{transform:translateY(2px);box-shadow:0 2px 0 #B92B60}
+  button.log:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+  .hint{font-size:12px;color:var(--mute);margin:10px 0 0;line-height:1.5}
+  .toast{font-size:13px;color:var(--magenta);margin:9px 0 0;min-height:17px;font-weight:600}
+
+  details{margin:22px 0 0;border-top:2px dashed #EFD2B6;padding-top:14px}
+  summary{font-size:11.5px;letter-spacing:.14em;font-weight:700;color:var(--magenta);cursor:pointer;list-style:none}
+  summary::-webkit-details-marker{display:none}
+  summary::before{content:'▸ '}
+  details[open] summary::before{content:'▾ '}
+  .stats{display:flex;flex-wrap:wrap;gap:16px 28px;margin:18px 0 6px}
+  .stat span{display:block;font-size:11px;letter-spacing:.1em;color:var(--mute);margin-bottom:4px;font-weight:700}
+  .stat strong{font-weight:700;font-size:22px;color:var(--ink)}
+  .row{display:flex;align-items:baseline;gap:10px;padding:9px 0;border-bottom:1px solid #F2DAC0}
+  .row .d{font-size:12.5px;color:var(--mute);width:80px;flex:none}
+  .row .w{font-weight:700;font-size:17px;color:var(--ink);width:58px;flex:none}
+  .row .c{font-size:12.5px;color:var(--mute);flex:1}
+  .row .c.up{color:var(--coral)}
+  .row .tag{font-size:11px;color:var(--violet);font-weight:700}
+  .row button{margin-left:auto;background:none;border:0;color:#C7A98F;font:inherit;font-size:12px;cursor:pointer}
+  .row button:hover,.row button:focus-visible{color:var(--magenta);outline:none}
+  .empty{color:var(--mute);font-size:13.5px;padding:10px 0}
+  .foot{margin:18px 0 0;font-size:11.5px;color:#B6957C;line-height:1.6}
+  .foot button{background:none;border:0;color:#B6957C;font:inherit;font-size:11.5px;
+    text-decoration:underline;cursor:pointer;padding:0}
+  .pulse{animation:p 3s ease-in-out infinite}
+  @keyframes p{0%,100%{opacity:.6}50%{opacity:1}}
+  @media (prefers-reduced-motion:reduce){.pulse{animation:none}}
+  .datatools{margin:14px 0 0;display:flex;gap:10px;flex-wrap:wrap}
+  .datatools button,.datatools label{background:none;border:1px solid #E7C7A8;border-radius:3px;
+    color:var(--mute);font:inherit;font-size:11.5px;font-weight:700;letter-spacing:.08em;
+    padding:7px 11px;cursor:pointer}
+  .datatools button:hover,.datatools label:hover{border-color:var(--magenta);color:var(--magenta)}
+  .datatools input[type=file]{display:none}
+  .savednote{font-size:11.5px;color:#B6957C;margin:10px 0 0;line-height:1.55}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="eyebrow">MORNING WEIGH-IN · OMAD · FRIDAYS OFF</div>
+  <h1>ROAD TO <span>175</span></h1>
+  <div class="bars">
+    <i style="background:#E8437F"></i><i style="background:#FF7A4D"></i>
+    <i style="background:#FFC24A"></i><i style="background:#1D9CA6"></i><i style="background:#8B5FBF"></i>
+  </div>
+  <div id="app"><p class="empty">Warming up the tubes…</p></div>
+</div>
+
+<script>
+const GOAL=175, GATE=200, START_W=207, GHOST_RATE=2.0, KEY='descent-log-v1';
+let state={entries:[],seeded:false};
+const iso=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+const parse=s=>{const[y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d);};
+const days=(a,b)=>Math.round((parse(b)-parse(a))/86400000);
+const addDays=(s,n)=>{const d=parse(s);d.setDate(d.getDate()+n);return iso(d);};
+const fmt=s=>parse(s).toLocaleDateString(undefined,{month:'short',day:'numeric'});
+const fmtLong=s=>parse(s).toLocaleDateString(undefined,{month:'long',day:'numeric',year:'numeric'});
+const one=n=>(Math.round(n*10)/10).toFixed(1);
+const isSat=s=>parse(s).getDay()===6;
+const WAYPOINTS=[{w:200,name:'THE GATE',gate:true},{w:195,name:'MILE 195'},
+  {w:190,name:'RIDGELINE'},{w:185,name:'STONEWATCH'},{w:180,name:'LAST STOP'}];
+
+/* Works two ways: inside Claude it uses the artifact store,
+   on any normal web host it uses the browser's own localStorage. */
+const store={
+  async get(){
+    if(window.storage&&window.storage.get){
+      try{const r=await window.storage.get(KEY); return r&&r.value?r.value:null;}catch(e){return null;}
+    }
+    try{return localStorage.getItem(KEY);}catch(e){return null;}
+  },
+  async set(v){
+    if(window.storage&&window.storage.set){
+      try{await window.storage.set(KEY,v); return true;}catch(e){return false;}
+    }
+    try{localStorage.setItem(KEY,v); return true;}catch(e){return false;}
+  }
+};
+async function load(){
+  const raw=await store.get();
+  if(raw){try{state=JSON.parse(raw);}catch(e){}}
+  if(!state.entries) state.entries=[];
+  if(!state.seeded&&state.entries.length===0){
+    state.entries.push({date:iso(new Date()),w:START_W}); state.seeded=true; save();}
+  render();
+}
+async function save(){
+  const ok=await store.set(JSON.stringify(state));
+  if(!ok){const t=document.getElementById('toast');
+    if(t)t.textContent='Could not save — check that this browser allows storage.';}
+}
+
+/* Your data belongs to you: take it with you. */
+function exportData(){
+  const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob), a=document.createElement('a');
+  a.href=url; a.download=`road-to-175-${iso(new Date())}.json`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+function importData(input){
+  const f=input.files&&input.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=async()=>{
+    try{
+      const d=JSON.parse(r.result);
+      if(!d||!Array.isArray(d.entries)) throw 0;
+      const seen={};
+      for(const e of [...state.entries,...d.entries]) if(e&&e.date&&typeof e.w==='number') seen[e.date]=e;
+      state.entries=Object.values(seen); state.seeded=true;
+      await save(); render();
+      document.getElementById('toast').textContent='Merged. Nothing was overwritten except same-day entries.';
+    }catch(e){
+      const t=document.getElementById('toast'); if(t)t.textContent='That file didn\u2019t look like a saved log.';
+    }
+  };
+  r.readAsText(f); input.value='';
+}
+const sorted=()=>[...state.entries].sort((a,b)=>a.date<b.date?-1:1);
+const trendAt=(l,i)=>{const s=l.slice(Math.max(0,i-6),i+1);return s.reduce((a,e)=>a+e.w,0)/s.length;};
+
+function analyse(){
+  const list=sorted(), start=list[0]||{date:iso(new Date()),w:START_W};
+  const last=list[list.length-1]||start;
+  const trend=list.length?trendAt(list,list.length-1):start.w;
+  const elapsed=days(start.date,last.date);
+  const ghostW=Math.max(GOAL,start.w-GHOST_RATE*(elapsed/7));
+  let W=0,Lo=0,floor=Infinity,gateRun=0,sealedOn=null;
+  list.forEach((e,i)=>{const t=trendAt(list,i);
+    if(i>=3){floor=Math.min(floor,t);
+      const g=Math.max(GOAL,start.w-GHOST_RATE*(days(start.date,e.date)/7));
+      if(!isSat(e.date)) t<=g?W++:Lo++;
+      if(t<GATE){gateRun++; if(gateRun>=14&&!sealedOn)sealedOn=e.date;} else gateRun=0;}});
+  if(floor===Infinity) floor=trend;
+  let pace=null,eta=null;
+  if(list.length>=10){const back=list.filter(e=>days(e.date,last.date)<=21);
+    if(back.length>=8){const i0=list.indexOf(back[0]),dd=days(back[0].date,last.date);
+      if(dd>=10) pace=(trendAt(list,i0)-trend)/(dd/7);}}
+  if(pace&&pace>0.15) eta=addDays(last.date,Math.round((trend-GOAL)/pace*7));
+  let plateau=0;
+  if(list.length>=14){const b=Math.min(10,list.length-1);
+    if(trendAt(list,list.length-1-b)-trend<0.4) plateau=days(list[list.length-1-b].date,last.date);}
+  return {list,start,last,trend,elapsed,ghostW,W,L:Lo,floor,sealedOn,pace,eta,plateau};
+}
+
+function render(){
+  const a=analyse(),{list,start,last,trend}=a;
+  const prev=list.length>1?list[list.length-2].w:null;
+  const dayDelta=prev===null?null:last.w-prev;
+  const lead=a.ghostW-trend;
+  let verdict,cls='';
+  if(list.length<4) verdict=`<span class="lead">The road's just starting.</span> A few more mornings before the trend means anything. Single readings never will.`;
+  else if(isSat(last.date)) verdict=`<span class="lead">Saturday — morning after the night out.</span> Salt and carbs pull water back overnight. It counts in the trend, not in the race.`;
+  else if(lead<-1.2){cls='warn';verdict=`<span class="lead">The ghost is ${one(-lead)} lb up the road.</span> He never has a good week or a bad one. Closing this takes ordinary days, not a heroic one.`;}
+  else if(lead<0) verdict=`<span class="lead">Trailing by ${one(-lead)} lb.</span> Inside the noise. Hold the routine.`;
+  else if(lead>1.5){cls='good';verdict=`<span class="lead">${one(lead)} lb ahead of the ghost.</span> Running faster than the plan.`;}
+  else{cls='good';verdict=`<span class="lead">Neck and neck.</span> Day ${a.elapsed}, dead even.`;}
+
+  document.getElementById('app').innerHTML=`
+    <div class="scene">${scene(a)}</div>
+    <div class="legend">
+      <span><i style="background:#42285A"></i>You</span>
+      <span><i style="background:#8B5FBF"></i>Ghost</span>
+      <span><i style="background:#1D9CA6"></i>Cleared</span>
+    </div>
+    <div class="eta">
+      <div class="lab">AT YOUR PACE, YOU ARRIVE</div>
+      ${a.eta?`<div class="date">${fmtLong(a.eta)}</div>`
+        :`<div class="date none">${list.length<10?'Not enough road behind you yet':'Trend is flat — no date to give you'}</div>`}
+      <div class="note">${a.pace?`Pace over the last three weeks: ${one(a.pace)} lb a week. This date moves every morning — earlier when you run, later when you stall.`
+        :`Ten mornings of data and this starts computing. Until then the only honest answer is that it's too early to say.`}</div>
+    </div>
+    <div class="duel"><div class="n">${a.W}<em>–</em>${a.L}</div>
+      <div class="s">days won against the ghost<br>
+      ${lead>=0?`<b>${one(lead)} ahead</b>`:`<b class="bad">${one(-lead)} behind</b>`} · he's at ${one(a.ghostW)}</div></div>
+    <div class="now"><div class="big">${one(last.w)}</div>
+      <div class="since">${dayDelta===null?`starting weight<br>${fmt(last.date)}`:
+        `<b>${dayDelta>0?'+':''}${one(dayDelta)}</b> since last entry<br>trend ${one(trend)}`}</div></div>
+    <div class="verdict ${cls}">${verdict}</div>
+    ${a.plateau>=10?`<div class="boss"><b>Plateau — day ${a.plateau}.</b> The trend hasn't moved since ${fmt(addDays(last.date,-a.plateau))}. This is the stretch that ends most attempts. It usually breaks on its own if nothing else changes.</div>`:''}
+    ${a.sealedOn?`<p class="sealed">★ The Gate sealed ${fmt(a.sealedOn)} — fourteen straight days below 200.</p>`:''}
+    <form onsubmit="return false">
+      <input id="wt" type="number" step="0.1" inputmode="decimal" placeholder="${one(last.w)}" aria-label="This morning's weight">
+      <button class="log" type="button" onclick="add()">LOG</button></form>
+    <p class="hint">After waking, before eating or drinking. Log Saturdays too — they're handled.</p>
+    <p class="toast" id="toast"></p>
+    <details><summary>THE NUMBERS</summary>
+      <div style="margin-top:14px">${chart(a)}</div>
+      <div class="stats">
+        <div class="stat"><span>DOWN</span><strong>${one(Math.max(0,start.w-last.w))}</strong></div>
+        <div class="stat"><span>TO GO</span><strong>${one(Math.max(0,last.w-GOAL))}</strong></div>
+        <div class="stat"><span>BEST TREND</span><strong>${one(a.floor)}</strong></div>
+        <div class="stat"><span>MORNINGS</span><strong>${list.length}</strong></div>
+      </div></details>
+    <details><summary>THE LOG (${list.length})</summary><div style="margin-top:10px">
+      ${list.length===0?'<p class="empty">Nothing logged yet.</p>':[...list].reverse().map((e,i,arr)=>{
+        const p=arr[i+1],d=p?e.w-p.w:null;
+        return `<div class="row"><div class="d">${fmt(e.date)}</div><div class="w">${one(e.w)}</div>
+          <div class="c ${d>0?'up':''}">${d===null?'start':(d>0?'+':'')+one(d)}
+          ${isSat(e.date)?'<span class="tag">post-splurge</span>':''}</div>
+          <button onclick="del('${e.date}')" aria-label="Delete ${fmt(e.date)}">delete</button></div>`;}).join('')}
+      </div>
+      <div class="datatools">
+        <button onclick="exportData()">BACK UP</button>
+        <label>RESTORE<input type="file" accept="application/json" onchange="importData(this)"></label>
+        <button onclick="wipe()">CLEAR ALL</button>
+      </div>
+      <p class="savednote">Your entries are stored in this browser on this device — there's no account and
+      nothing leaves your phone. That also means a cleared browser wipes them, so back up now and then.</p>
+      <p class="foot">Ghost walks ${GHOST_RATE} lb a week from ${one(start.w)} on ${fmt(start.date)}.
+      Saturdays count in the trend, not the race. Re-entering today replaces it.</p></details>`;
+  const i=document.getElementById('wt');
+  if(i) i.addEventListener('keydown',e=>{if(e.key==='Enter')add();});
+}
+
+/* ---------- bright retro sunset ---------- */
+const VX=170, VY=160, W=340, H=470;
+const C=230, Y_NEAR=436, Y_FAR=196, GZ_FAR=30;
+/* f = 0 at the start (nearest the viewer), f = 1 at 175 (far up the road, at the sun).
+   The sine's frequency is tuned so each waypoint lands on an opposite swing —
+   the road switchbacks and the markers alternate left, right, left. */
+const SWEEP=18, SWITCH=6.25, PHASE=-2.73, TAPER=.45;
+const yOf=f=>Y_NEAR+f*(Y_FAR-Y_NEAR);
+const zOfY=y=>C/(y-VY);
+const sy=z=>VY+C/z;
+const sx=(wx,z)=>VX+wx*(3.0/z);                     // true perspective, for the ground grid
+const sxr=(wx,z)=>VX+wx*(3.0/Math.pow(z,.62));       // eased, so distant bends stay legible
+const curveF=f=>Math.sin(f*Math.PI*SWITCH+PHASE)*SWEEP*(1-f*TAPER)*(1-Math.pow(f,6));
+const relief=(wx,z)=>Math.sin(wx*.09+z*.85)*7/z;
+const along=f=>{const y=yOf(f), z=zOfY(y), wx=curveF(f);
+  return {x:sxr(wx,z), y:y+relief(wx,z), z, s:Math.max(.34,1.5/z)};};
+
+function scene(a){
+  let g=`<defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8B5FBF"/><stop offset=".22" stop-color="#D96BA0"/>
+      <stop offset=".52" stop-color="#FF8E63"/><stop offset=".8" stop-color="#FFC24A"/>
+      <stop offset="1" stop-color="#FFE9BE"/></linearGradient>
+    <linearGradient id="sun" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFF0B8"/><stop offset=".45" stop-color="#FFC24A"/>
+      <stop offset="1" stop-color="#E8437F"/></linearGradient>
+    <linearGradient id="ground" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFE0C0"/><stop offset="1" stop-color="#FFF7EC"/></linearGradient>
+    <linearGradient id="haze" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFE9BE" stop-opacity=".95"/>
+      <stop offset="1" stop-color="#FFE9BE" stop-opacity="0"/></linearGradient>
+    <radialGradient id="youGlow" cx=".5" cy=".5" r=".5">
+      <stop offset="0" stop-color="#E8437F" stop-opacity=".45"/>
+      <stop offset="1" stop-color="#E8437F" stop-opacity="0"/></radialGradient>
+    <clipPath id="above"><rect x="0" y="0" width="${W}" height="${VY}"/></clipPath>
+  </defs>
+  <rect width="${W}" height="${VY}" fill="url(#sky)"/>
+  <rect y="${VY}" width="${W}" height="${H-VY}" fill="url(#ground)"/>`;
+
+  // banded sun
+  g+=`<g clip-path="url(#above)"><circle cx="${VX}" cy="${VY-6}" r="66" fill="url(#sun)"/>`;
+  for(let i=0;i<9;i++){
+    const yy=VY-58+i*7.4, h=1.1+i*.85;
+    g+=`<rect x="${VX-70}" y="${yy}" width="140" height="${h}" fill="#FFB27A" opacity=".85"/>`;
+  }
+  g+=`</g>`;
+
+  // distant range
+  g+=`<path d="M0 ${VY} L26 ${VY-22} L48 ${VY-8} L74 ${VY-34} L104 ${VY-12} L128 ${VY-26} L150 ${VY-6}
+      L196 ${VY-6} L214 ${VY-30} L242 ${VY-10} L268 ${VY-30} L296 ${VY-12} L320 ${VY-24} L340 ${VY}Z"
+      fill="#8B5FBF" opacity=".5"/>`;
+  g+=`<line x1="0" y1="${VY}" x2="${W}" y2="${VY}" stroke="#E8437F" stroke-width="1.6" opacity=".8"/>`;
+
+  // 175 — the destination, set into the base of the sun
+  const reached=a.floor<=GOAL;
+  g+=`<line x1="${VX-34}" y1="${VY-1.5}" x2="${VX+34}" y2="${VY-1.5}" stroke="#FFF3E2" stroke-width="2.6" opacity=".9"/>`;
+  g+=`<text x="${VX}" y="${VY-9}" text-anchor="middle" font-size="30" font-weight="700"
+    font-family="Futura,'Century Gothic',sans-serif" letter-spacing=".06em"
+    fill="${reached?'#1D9CA6':'#FFF6E6'}" stroke="#B23A6A" stroke-width="3.4"
+    paint-order="stroke" stroke-linejoin="round">175</text>`;
+
+  // grid
+  for(let wx=-84; wx<=84; wx+=12){
+    let pts=[];
+    for(let z=GZ_FAR; z>=1; z-=.4) pts.push(`${sx(wx,z).toFixed(1)},${(sy(z)+relief(wx,z)).toFixed(1)}`);
+    g+=`<polyline points="${pts.join(' ')}" fill="none" stroke="#E8437F" stroke-width=".9" opacity=".38"/>`;
+  }
+  for(let z=GZ_FAR; z>=1; z*=.86){
+    let pts=[];
+    for(let wx=-84; wx<=84; wx+=6) pts.push(`${sx(wx,z).toFixed(1)},${(sy(z)+relief(wx,z)).toFixed(1)}`);
+    g+=`<polyline points="${pts.join(' ')}" fill="none" stroke="#C9457E" stroke-width=".9" opacity="${Math.min(.5,.12+(1/z)).toFixed(2)}"/>`;
+  }
+  g+=`<rect x="0" y="${VY}" width="${W}" height="34" fill="url(#haze)"/>`;
+
+  // the road — runs from your feet out to the sun
+  let rp=[];
+  for(let i=0;i<=64;i++){const q=along(i/64); rp.push(`${q.x.toFixed(1)},${q.y.toFixed(1)}`);}
+  g+=`<polyline points="${rp.join(' ')}" fill="none" stroke="#FF7A4D" stroke-width="5" opacity=".35" stroke-linecap="round"/>`;
+  g+=`<polyline points="${rp.join(' ')}" fill="none" stroke="#FFF3E2" stroke-width="2" stroke-linecap="round"/>`;
+  g+=`<polyline points="${rp.join(' ')}" fill="none" stroke="#42285A" stroke-width=".9" stroke-dasharray="3 9" opacity=".55"/>`;
+
+  const frac=w=>Math.min(1,Math.max(0,(a.start.w-w)/(a.start.w-GOAL)));
+  const at=w=>along(frac(w));
+
+  for(const p of WAYPOINTS){
+    const q=at(p.w), on=a.floor<=p.w, c=on?'#1D9CA6':'#C08FA8', r=6*q.s+2.4;
+    if(p.gate){
+      g+=`<path d="M${q.x-r*1.5} ${q.y+r*.5} L${q.x-r*1.5} ${q.y-r} L${q.x} ${q.y-r*1.8} L${q.x+r*1.5} ${q.y-r} L${q.x+r*1.5} ${q.y+r*.5}"
+        fill="none" stroke="${c}" stroke-width="${1.8*Math.max(.6,q.s)}" stroke-linejoin="round"/>`;
+    } else {
+      g+=`<path d="M${q.x} ${q.y-r} L${q.x+r*.9} ${q.y} L${q.x} ${q.y+r} L${q.x-r*.9} ${q.y} Z"
+        fill="${on?'#1D9CA6':'#FFF3E2'}" stroke="${c}" stroke-width="${1.4*Math.max(.6,q.s)}"/>`;
+    }
+    // label sits on the outside of the bend, following the road's swing
+    const dir=q.x>=VX?1:-1, x0=q.x+dir*(r*1.7), x1=x0+dir*8;
+    g+=`<line x1="${x0}" y1="${q.y}" x2="${x1}" y2="${q.y}" stroke="${c}" stroke-width="1" opacity=".85"/>`;
+    g+=`<text x="${x1+dir*4}" y="${q.y+3.5}" font-size="${Math.max(8,9*Math.min(1.15,q.s+.55))}"
+      font-family="Futura,'Century Gothic',sans-serif" font-weight="700" letter-spacing=".07em"
+      text-anchor="${dir>0?'start':'end'}" fill="${on?'#12727A':'#A9789A'}">${p.w} ${p.name}</text>`;
+  }
+
+  const gq=at(a.ghostW);
+  g+=`<path d="M${gq.x} ${gq.y-7} L${gq.x+6} ${gq.y} L${gq.x} ${gq.y+7} L${gq.x-6} ${gq.y} Z"
+    fill="#FFF3E2" stroke="#8B5FBF" stroke-width="1.8"/>`;
+  g+=`<circle cx="${gq.x}" cy="${gq.y}" r="12" fill="none" stroke="#8B5FBF" stroke-width=".9" opacity=".45"/>`;
+
+  const yq=at(a.trend);
+  const yd=yq.x<VX?1:-1;   // opposite side from the waypoint labels
+  g+=`<circle cx="${yq.x}" cy="${yq.y}" r="26" fill="url(#youGlow)"/>`;
+  g+=`<circle cx="${yq.x}" cy="${yq.y}" r="14" fill="none" stroke="#E8437F" stroke-width="1.1" opacity=".6" class="pulse"/>`;
+  g+=`<path d="M${yq.x} ${yq.y-9} L${yq.x+8} ${yq.y} L${yq.x} ${yq.y+9} L${yq.x-8} ${yq.y} Z"
+    fill="#42285A" stroke="#FFF3E2" stroke-width="1.6"/>`;
+  g+=`<line x1="${yq.x+yd*15}" y1="${yq.y}" x2="${yq.x+yd*30}" y2="${yq.y}" stroke="#42285A" stroke-width="1" opacity=".7"/>`;
+  g+=`<text x="${yq.x+yd*34}" y="${yq.y+4.5}" font-size="13" font-weight="700"
+    font-family="Futura,'Century Gothic',sans-serif" text-anchor="${yd>0?'start':'end'}" fill="#42285A">${one(a.trend)}</text>`;
+
+  g+=`<text x="${W-10}" y="${H-11}" font-size="9.5" font-weight="700" letter-spacing=".16em"
+    font-family="Futura,'Century Gothic',sans-serif" text-anchor="end" fill="#C08FA8">${one(Math.max(0,a.trend-GOAL))} LB TO GO</text>`;
+
+  return `<svg viewBox="0 0 ${W} ${H}" role="img"
+    aria-label="Retro sunset road running toward the horizon, with your position and the ghost's marked along it">${g}</svg>`;
+}
+
+function chart(a){
+  const {list,start,floor}=a, CW=340,CH=210,L=26,R=8,T=10,B=20;
+  const lo=GOAL-3, hi=Math.max(209,start.w+2);
+  const y=w=>T+(hi-w)/(hi-lo)*(CH-T-B);
+  const d0=start.date, d1=addDays(start.date,Math.ceil((start.w-GOAL)/GHOST_RATE*7));
+  const span=Math.max(1,days(d0,d1));
+  const x=ds=>L+Math.min(1,Math.max(0,days(d0,ds)/span))*(CW-L-R);
+  let g=`<rect x="${L}" y="${T}" width="${CW-L-R}" height="${CH-T-B}" fill="#FFF7EC"/>`;
+  for(const v of [205,200,195,190,185,180,175]){
+    const gate=v===GATE, goal=v===GOAL;
+    g+=`<line x1="${L}" y1="${y(v)}" x2="${CW-R}" y2="${y(v)}"
+      stroke="${goal?'#1D9CA6':gate?'#E8437F':'#F0D3B6'}" stroke-width="${goal?1.5:1}"
+      ${gate?'stroke-dasharray="5 4"':''}/>
+      <text x="0" y="${y(v)+4}" font-size="10" font-weight="700" font-family="Futura,'Century Gothic',sans-serif"
+      fill="${goal?'#12727A':gate?'#E8437F':'#C08FA8'}">${v}</text>`;
+  }
+  if(list.length>3) g+=`<line x1="${L}" y1="${y(floor)}" x2="${CW-R}" y2="${y(floor)}" stroke="#1D9CA6" stroke-width="1" opacity=".45"/>`;
+  g+=`<line x1="${x(d0)}" y1="${y(start.w)}" x2="${x(d1)}" y2="${y(GOAL)}" stroke="#8B5FBF" stroke-width="1.2" stroke-dasharray="4 5"/>`;
+  for(const e of list) g+=`<circle cx="${x(e.date)}" cy="${y(e.w)}" r="${isSat(e.date)?3:2.5}"
+    fill="${isSat(e.date)?'#FFC24A':'#C08FA8'}"/>`;
+  if(list.length>1) g+=`<polyline fill="none" stroke="#42285A" stroke-width="2.2" stroke-linejoin="round"
+    stroke-linecap="round" points="${list.map((e,i)=>`${x(e.date)},${y(trendAt(list,i))}`).join(' ')}"/>`;
+  g+=`<text x="${L}" y="${CH-4}" font-size="9.5" font-weight="700" font-family="Futura,'Century Gothic',sans-serif" fill="#C08FA8">${fmt(d0)}</text>
+      <text x="${CW-R}" y="${CH-4}" font-size="9.5" font-weight="700" font-family="Futura,'Century Gothic',sans-serif" text-anchor="end" fill="#8B5FBF">GHOST ARRIVES ${fmt(d1)}</text>`;
+  return `<svg viewBox="0 0 ${CW} ${CH}">${g}</svg>`;
+}
+
+async function add(){
+  const el=document.getElementById('wt'), v=parseFloat(el.value);
+  if(isNaN(v)||v<80||v>600){document.getElementById('toast').textContent='Enter a weight in pounds.';return;}
+  const today=iso(new Date()), ex=state.entries.find(e=>e.date===today);
+  if(ex)ex.w=v; else state.entries.push({date:today,w:v});
+  await save(); render();
+  document.getElementById('toast').textContent=ex?'Replaced today’s entry.':'Logged.';
+}
+async function del(d){state.entries=state.entries.filter(e=>e.date!==d);await save();render();}
+async function wipe(){state={entries:[],seeded:true};await save();render();}
+load();
+</script>
+
+</body>
+</html>
