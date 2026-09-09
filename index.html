@@ -305,24 +305,44 @@ function render(){
   if(i) i.addEventListener('keydown',e=>{if(e.key==='Enter')add();});
 }
 
-/* ---------- bright retro sunset ---------- */
-const VX=170, VY=160, W=340, H=470;
-const C=230, Y_NEAR=436, Y_FAR=196, GZ_FAR=30;
-/* f = 0 at the start (nearest the viewer), f = 1 at 175 (far up the road, at the sun).
-   The sine's frequency is tuned so each waypoint lands on an opposite swing —
-   the road switchbacks and the markers alternate left, right, left. */
-const SWEEP=18, SWITCH=6.25, PHASE=-2.73, TAPER=.45;
+/* ---------- two lanes to the sun ---------- */
+const VX=170, VY=150, W=340, H=430;
+const C=210, Y_NEAR=402, Y_FAR=190, GZ_FAR=26;
+const LANE=19, HALF=8.6;                 // lane centre offset and half-width, in world units
 const yOf=f=>Y_NEAR+f*(Y_FAR-Y_NEAR);
 const zOfY=y=>C/(y-VY);
 const sy=z=>VY+C/z;
-const sx=(wx,z)=>VX+wx*(3.0/z);                     // true perspective, for the ground grid
-const sxr=(wx,z)=>VX+wx*(3.0/Math.pow(z,.62));       // eased, so distant bends stay legible
-const curveF=f=>Math.sin(f*Math.PI*SWITCH+PHASE)*SWEEP*(1-f*TAPER)*(1-Math.pow(f,6));
-const relief=(wx,z)=>Math.sin(wx*.09+z*.85)*7/z;
-const along=f=>{const y=yOf(f), z=zOfY(y), wx=curveF(f);
-  return {x:sxr(wx,z), y:y+relief(wx,z), z, s:Math.max(.34,1.5/z)};};
+const sx=(wx,z)=>VX+wx*(3.0/z);                  // true perspective, for the ground
+const px=(wx,z)=>VX+wx*(3.0/Math.pow(z,.68));    // eased, so the far end stays readable
+const at=(f,lane)=>{const y=yOf(f), z=zOfY(y), k=3.0/Math.pow(z,.68);
+  return {x:VX+lane*k, y, z, half:HALF*k, s:Math.max(.34,Math.min(1.45,1.5/z))};};
+
+/* one lane, or the travelled part of it, as a closed tapering ribbon */
+function ribbon(lane,f0,f1){
+  const N=26, L=[], R=[];
+  for(let i=0;i<=N;i++){
+    const p=at(f0+(f1-f0)*i/N, lane);
+    L.push(`${(p.x-p.half).toFixed(1)},${p.y.toFixed(1)}`);
+    R.push(`${(p.x+p.half).toFixed(1)},${p.y.toFixed(1)}`);
+  }
+  return 'M'+L.join(' L')+' L'+R.reverse().join(' L')+' Z';
+}
+
+/* a little runner, feet on the lane, haloed so he reads on light ground or dark fill */
+function runner(x,yFoot,s,body,halo){
+  const limbs=`<path d="M-1 -20 L-3.5 -12"/><path d="M-1 -17 L4.5 -15"/><path d="M-1.4 -16 L-6.5 -12.5"/>`
+             +`<path d="M-3.5 -12 L1.5 -7.5 L2.5 -1"/><path d="M-3.5 -12 L-7.5 -8.5 L-11 -7.5"/>`;
+  return `<g transform="translate(${x.toFixed(1)},${yFoot.toFixed(1)}) scale(${s.toFixed(3)})">
+    <g stroke="${halo}" stroke-width="4.6" stroke-linecap="round" stroke-linejoin="round" fill="none">${limbs}</g>
+    <circle cx="-.4" cy="-23.4" r="4.5" fill="${halo}"/>
+    <g stroke="${body}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none">${limbs}</g>
+    <circle cx="-.4" cy="-23.4" r="3" fill="${body}"/></g>`;
+}
 
 function scene(a){
+  const frac=w=>Math.min(1,Math.max(0,(a.start.w-w)/(a.start.w-GOAL)));
+  const fYou=frac(a.trend), fGho=frac(a.ghostW);
+
   let g=`<defs>
     <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#8B5FBF"/><stop offset=".22" stop-color="#D96BA0"/>
@@ -336,96 +356,93 @@ function scene(a){
     <linearGradient id="haze" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#FFE9BE" stop-opacity=".95"/>
       <stop offset="1" stop-color="#FFE9BE" stop-opacity="0"/></linearGradient>
-    <radialGradient id="youGlow" cx=".5" cy=".5" r=".5">
-      <stop offset="0" stop-color="#E8437F" stop-opacity=".45"/>
-      <stop offset="1" stop-color="#E8437F" stop-opacity="0"/></radialGradient>
+    <linearGradient id="fillYou" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#2E1A42"/><stop offset="1" stop-color="#5B3A78"/></linearGradient>
+    <linearGradient id="fillGho" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#6B48A8"/><stop offset="1" stop-color="#A98BD8"/></linearGradient>
     <clipPath id="above"><rect x="0" y="0" width="${W}" height="${VY}"/></clipPath>
   </defs>
   <rect width="${W}" height="${VY}" fill="url(#sky)"/>
   <rect y="${VY}" width="${W}" height="${H-VY}" fill="url(#ground)"/>`;
 
   // banded sun
-  g+=`<g clip-path="url(#above)"><circle cx="${VX}" cy="${VY-6}" r="66" fill="url(#sun)"/>`;
-  for(let i=0;i<9;i++){
-    const yy=VY-58+i*7.4, h=1.1+i*.85;
-    g+=`<rect x="${VX-70}" y="${yy}" width="140" height="${h}" fill="#FFB27A" opacity=".85"/>`;
-  }
+  g+=`<g clip-path="url(#above)"><circle cx="${VX}" cy="${VY-6}" r="64" fill="url(#sun)"/>`;
+  for(let i=0;i<9;i++) g+=`<rect x="${VX-68}" y="${VY-56+i*7.2}" width="136" height="${1.1+i*.85}" fill="#FFB27A" opacity=".85"/>`;
   g+=`</g>`;
 
-  // distant range
-  g+=`<path d="M0 ${VY} L26 ${VY-22} L48 ${VY-8} L74 ${VY-34} L104 ${VY-12} L128 ${VY-26} L150 ${VY-6}
+  // ridgeline + horizon
+  g+=`<path d="M0 ${VY} L26 ${VY-22} L48 ${VY-8} L74 ${VY-32} L104 ${VY-12} L128 ${VY-26} L150 ${VY-6}
       L196 ${VY-6} L214 ${VY-30} L242 ${VY-10} L268 ${VY-30} L296 ${VY-12} L320 ${VY-24} L340 ${VY}Z"
-      fill="#8B5FBF" opacity=".5"/>`;
-  g+=`<line x1="0" y1="${VY}" x2="${W}" y2="${VY}" stroke="#E8437F" stroke-width="1.6" opacity=".8"/>`;
+      fill="#8B5FBF" opacity=".5"/>
+   <line x1="0" y1="${VY}" x2="${W}" y2="${VY}" stroke="#E8437F" stroke-width="1.6" opacity=".8"/>`;
 
-  // 175 — the destination, set into the base of the sun
+  // 175 set into the base of the sun
   const reached=a.floor<=GOAL;
-  g+=`<line x1="${VX-34}" y1="${VY-1.5}" x2="${VX+34}" y2="${VY-1.5}" stroke="#FFF3E2" stroke-width="2.6" opacity=".9"/>`;
-  g+=`<text x="${VX}" y="${VY-9}" text-anchor="middle" font-size="30" font-weight="700"
+  g+=`<line x1="${VX-34}" y1="${VY-1.5}" x2="${VX+34}" y2="${VY-1.5}" stroke="#FFF3E2" stroke-width="2.6" opacity=".9"/>
+   <text x="${VX}" y="${VY-9}" text-anchor="middle" font-size="30" font-weight="700"
     font-family="Futura,'Century Gothic',sans-serif" letter-spacing=".06em"
     fill="${reached?'#1D9CA6':'#FFF6E6'}" stroke="#B23A6A" stroke-width="3.4"
     paint-order="stroke" stroke-linejoin="round">175</text>`;
 
-  // grid
-  for(let wx=-84; wx<=84; wx+=12){
+  // faint ground grid for depth
+  for(let z=GZ_FAR; z>=1; z*=.84){
     let pts=[];
-    for(let z=GZ_FAR; z>=1; z-=.4) pts.push(`${sx(wx,z).toFixed(1)},${(sy(z)+relief(wx,z)).toFixed(1)}`);
-    g+=`<polyline points="${pts.join(' ')}" fill="none" stroke="#E8437F" stroke-width=".9" opacity=".38"/>`;
+    for(let wx=-90; wx<=90; wx+=10) pts.push(`${sx(wx,z).toFixed(1)},${sy(z).toFixed(1)}`);
+    g+=`<polyline points="${pts.join(' ')}" fill="none" stroke="#E8A9C0" stroke-width=".7" opacity="${Math.min(.18,.04+(1/z)*.4).toFixed(2)}"/>`;
   }
-  for(let z=GZ_FAR; z>=1; z*=.86){
-    let pts=[];
-    for(let wx=-84; wx<=84; wx+=6) pts.push(`${sx(wx,z).toFixed(1)},${(sy(z)+relief(wx,z)).toFixed(1)}`);
-    g+=`<polyline points="${pts.join(' ')}" fill="none" stroke="#C9457E" stroke-width=".9" opacity="${Math.min(.5,.12+(1/z)).toFixed(2)}"/>`;
+  g+=`<rect x="0" y="${VY}" width="${W}" height="30" fill="url(#haze)"/>`;
+
+  // the two lanes: empty track, then the part already run
+  for(const L of [{lane:-LANE,f:fYou,fill:'url(#fillYou)',edge:'#42285A'},
+                  {lane: LANE,f:fGho,fill:'url(#fillGho)',edge:'#8B5FBF'}]){
+    g+=`<path d="${ribbon(L.lane,0,1)}" fill="#FFF9F0" stroke="${L.edge}" stroke-width="1.2" opacity=".95"/>`;
+    if(L.f>0.004) g+=`<path d="${ribbon(L.lane,0,L.f)}" fill="${L.fill}" stroke="${L.edge}" stroke-width="1"/>`;
   }
-  g+=`<rect x="0" y="${VY}" width="${W}" height="34" fill="url(#haze)"/>`;
 
-  // the road — runs from your feet out to the sun
-  let rp=[];
-  for(let i=0;i<=64;i++){const q=along(i/64); rp.push(`${q.x.toFixed(1)},${q.y.toFixed(1)}`);}
-  g+=`<polyline points="${rp.join(' ')}" fill="none" stroke="#FF7A4D" stroke-width="5" opacity=".35" stroke-linecap="round"/>`;
-  g+=`<polyline points="${rp.join(' ')}" fill="none" stroke="#FFF3E2" stroke-width="2" stroke-linecap="round"/>`;
-  g+=`<polyline points="${rp.join(' ')}" fill="none" stroke="#42285A" stroke-width=".9" stroke-dasharray="3 9" opacity=".55"/>`;
-
-  const frac=w=>Math.min(1,Math.max(0,(a.start.w-w)/(a.start.w-GOAL)));
-  const at=w=>along(frac(w));
-
-  for(const p of WAYPOINTS){
-    const q=at(p.w), on=a.floor<=p.w, c=on?'#1D9CA6':'#C08FA8', r=6*q.s+2.4;
-    if(p.gate){
-      g+=`<path d="M${q.x-r*1.5} ${q.y+r*.5} L${q.x-r*1.5} ${q.y-r} L${q.x} ${q.y-r*1.8} L${q.x+r*1.5} ${q.y-r} L${q.x+r*1.5} ${q.y+r*.5}"
-        fill="none" stroke="${c}" stroke-width="${1.8*Math.max(.6,q.s)}" stroke-linejoin="round"/>`;
-    } else {
-      g+=`<path d="M${q.x} ${q.y-r} L${q.x+r*.9} ${q.y} L${q.x} ${q.y+r} L${q.x-r*.9} ${q.y} Z"
-        fill="${on?'#1D9CA6':'#FFF3E2'}" stroke="${c}" stroke-width="${1.4*Math.max(.6,q.s)}"/>`;
+  // waypoint rungs across both lanes, numbered down the middle
+  for(const wp of WAYPOINTS){
+    const f=frac(wp.w), on=a.floor<=wp.w, c=on?'#1D9CA6':'#C79BB4';
+    for(const lane of [-LANE,LANE]){
+      const p=at(f,lane);
+      g+=`<line x1="${(p.x-p.half).toFixed(1)}" y1="${p.y.toFixed(1)}" x2="${(p.x+p.half).toFixed(1)}" y2="${p.y.toFixed(1)}"
+        stroke="${c}" stroke-width="${(1.6*Math.max(.5,p.s)).toFixed(1)}" opacity=".85"/>`;
     }
-    // label sits on the outside of the bend, following the road's swing
-    const dir=q.x>=VX?1:-1, x0=q.x+dir*(r*1.7), x1=x0+dir*8;
-    g+=`<line x1="${x0}" y1="${q.y}" x2="${x1}" y2="${q.y}" stroke="${c}" stroke-width="1" opacity=".85"/>`;
-    g+=`<text x="${x1+dir*4}" y="${q.y+3.5}" font-size="${Math.max(8,9*Math.min(1.15,q.s+.55))}"
-      font-family="Futura,'Century Gothic',sans-serif" font-weight="700" letter-spacing=".07em"
-      text-anchor="${dir>0?'start':'end'}" fill="${on?'#12727A':'#A9789A'}">${p.w} ${p.name}</text>`;
+    const q=at(f,0), fs=Math.max(8.5,11*Math.min(1.1,q.s+.45));
+    g+=`<text x="${VX}" y="${(q.y+fs*.36).toFixed(1)}" text-anchor="middle" font-size="${fs.toFixed(1)}"
+      font-family="Futura,'Century Gothic',sans-serif" font-weight="700" letter-spacing=".04em"
+      fill="${on?'#12727A':'#B98CAA'}">${wp.w}</text>`;
   }
 
-  const gq=at(a.ghostW);
-  g+=`<path d="M${gq.x} ${gq.y-7} L${gq.x+6} ${gq.y} L${gq.x} ${gq.y+7} L${gq.x-6} ${gq.y} Z"
-    fill="#FFF3E2" stroke="#8B5FBF" stroke-width="1.8"/>`;
-  g+=`<circle cx="${gq.x}" cy="${gq.y}" r="12" fill="none" stroke="#8B5FBF" stroke-width=".9" opacity=".45"/>`;
+  // the finish, across both lanes
+  for(const lane of [-LANE,LANE]){
+    const p=at(1,lane);
+    g+=`<line x1="${(p.x-p.half-1).toFixed(1)}" y1="${p.y.toFixed(1)}" x2="${(p.x+p.half+1).toFixed(1)}" y2="${p.y.toFixed(1)}"
+      stroke="${reached?'#1D9CA6':'#42285A'}" stroke-width="2.6"/>`;
+  }
 
-  const yq=at(a.trend);
-  const yd=yq.x<VX?1:-1;   // opposite side from the waypoint labels
-  g+=`<circle cx="${yq.x}" cy="${yq.y}" r="26" fill="url(#youGlow)"/>`;
-  g+=`<circle cx="${yq.x}" cy="${yq.y}" r="14" fill="none" stroke="#E8437F" stroke-width="1.1" opacity=".6" class="pulse"/>`;
-  g+=`<path d="M${yq.x} ${yq.y-9} L${yq.x+8} ${yq.y} L${yq.x} ${yq.y+9} L${yq.x-8} ${yq.y} Z"
-    fill="#42285A" stroke="#FFF3E2" stroke-width="1.6"/>`;
-  g+=`<line x1="${yq.x+yd*15}" y1="${yq.y}" x2="${yq.x+yd*30}" y2="${yq.y}" stroke="#42285A" stroke-width="1" opacity=".7"/>`;
-  g+=`<text x="${yq.x+yd*34}" y="${yq.y+4.5}" font-size="13" font-weight="700"
-    font-family="Futura,'Century Gothic',sans-serif" text-anchor="${yd>0?'start':'end'}" fill="#42285A">${one(a.trend)}</text>`;
+  // the runners
+  const gq=at(fGho,LANE), yq=at(fYou,-LANE);
+  g+=runner(gq.x,gq.y,gq.s*.9,'#8B5FBF','#FFF3E2');
+  g+=runner(yq.x,yq.y,yq.s,'#42285A','#FFF3E2');
 
-  g+=`<text x="${W-10}" y="${H-11}" font-size="9.5" font-weight="700" letter-spacing=".16em"
-    font-family="Futura,'Century Gothic',sans-serif" text-anchor="end" fill="#C08FA8">${one(Math.max(0,a.trend-GOAL))} LB TO GO</text>`;
+  // lane names at the near end, and the start number
+  const n0=at(0,-LANE), n1=at(0,LANE);
+  g+=`<text x="${n0.x}" y="${H-13}" text-anchor="middle" font-size="11" font-weight="700" letter-spacing=".18em"
+      font-family="Futura,'Century Gothic',sans-serif" fill="#42285A">YOU</text>
+   <text x="${n1.x}" y="${H-13}" text-anchor="middle" font-size="11" font-weight="700" letter-spacing=".18em"
+      font-family="Futura,'Century Gothic',sans-serif" fill="#8B5FBF">GHOST</text>
+   <text x="${VX}" y="${H-13}" text-anchor="middle" font-size="11" font-weight="700" letter-spacing=".06em"
+      font-family="Futura,'Century Gothic',sans-serif" fill="#C79BB4">${one(a.start.w)}</text>`;
+
+  // running totals on each lane
+  // read-outs sit outside their own lane so they never collide with the rungs
+  const tag=(p,txt,col,size,dir)=>`<text x="${(p.x+dir*(p.half+7)).toFixed(1)}" y="${(p.y-13*p.s).toFixed(1)}"
+      text-anchor="${dir<0?'end':'start'}" font-size="${size}" font-weight="700"
+      font-family="Futura,'Century Gothic',sans-serif" letter-spacing=".02em" fill="${col}">${txt}</text>`;
+  g+=tag(yq,one(a.trend),'#42285A',13,-1)+tag(gq,one(a.ghostW),'#8B5FBF',12,1);
 
   return `<svg viewBox="0 0 ${W} ${H}" role="img"
-    aria-label="Retro sunset road running toward the horizon, with your position and the ghost's marked along it">${g}</svg>`;
+    aria-label="Two race lanes running toward a setting sun. Your lane fills dark as you lose weight; the ghost runs the lane beside you.">${g}</svg>`;
 }
 
 function chart(a){
