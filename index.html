@@ -137,7 +137,15 @@ const ghostRaw=t=>{
   return fat - water + stall + out;
 };
 const ghostTrend=t=>{let s=0;for(let i=0;i<7;i++)s+=ghostRaw(Math.max(0,t-i));return s/7;};
-const GHOST_ARRIVES=(()=>{for(let t=0;t<900;t++) if(ghostTrend(t)<=GOAL) return t; return 900;})();
+/* computed on first use, not at load: ghostRaw needs parse(), declared below */
+let _ghostArrives=null;
+const ghostArrives=()=>{
+  if(_ghostArrives===null){
+    _ghostArrives=900;
+    for(let t=0;t<900;t++) if(ghostTrend(t)<=GOAL){_ghostArrives=t;break;}
+  }
+  return _ghostArrives;
+};
 let state={entries:[],seeded:false};
 const iso=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 const parse=s=>{const[y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d);};
@@ -299,7 +307,7 @@ function render(){
       </div>
       <p class="savednote">Your entries are stored in this browser on this device — there's no account and
       nothing leaves your phone. That also means a cleared browser wipes them, so back up now and then.</p>
-      <p class="foot">The ghost runs the same program from ${one(start.w)} on ${fmt(start.date)} — water first, then a slowing burn, a plateau near week eight, and Friday nights out. He reaches 175 on ${fmt(addDays(start.date,GHOST_ARRIVES))}.
+      <p class="foot">The ghost runs the same program from ${one(start.w)} on ${fmt(start.date)} — water first, then a slowing burn, a plateau near week eight, and Friday nights out. He reaches 175 on ${fmt(addDays(start.date,ghostArrives()))}.
       Saturdays count in the trend, not the race. Re-entering today replaces it.</p></details>`;
   const i=document.getElementById('wt');
   if(i) i.addEventListener('keydown',e=>{if(e.key==='Enter')add();});
@@ -449,7 +457,7 @@ function chart(a){
   const {list,start,floor}=a, CW=340,CH=210,L=26,R=8,T=10,B=20;
   const lo=GOAL-3, hi=Math.max(209,start.w+2);
   const y=w=>T+(hi-w)/(hi-lo)*(CH-T-B);
-  const d0=start.date, d1=addDays(start.date,GHOST_ARRIVES);
+  const d0=start.date, d1=addDays(start.date,ghostArrives());
   const span=Math.max(1,days(d0,d1));
   const x=ds=>L+Math.min(1,Math.max(0,days(d0,ds)/span))*(CW-L-R);
   let g=`<rect x="${L}" y="${T}" width="${CW-L-R}" height="${CH-T-B}" fill="#FFF7EC"/>`;
@@ -462,7 +470,7 @@ function chart(a){
       fill="${goal?'#12727A':gate?'#E8437F':'#C08FA8'}">${v}</text>`;
   }
   if(list.length>3) g+=`<line x1="${L}" y1="${y(floor)}" x2="${CW-R}" y2="${y(floor)}" stroke="#1D9CA6" stroke-width="1" opacity=".45"/>`;
-  {let gp=[];for(let t=0;t<=GHOST_ARRIVES;t+=2) gp.push(`${x(addDays(d0,t))},${y(ghostTrend(t))}`);
+  {let gp=[];for(let t=0;t<=ghostArrives();t+=2) gp.push(`${x(addDays(d0,t))},${y(ghostTrend(t))}`);
    g+=`<polyline points="${gp.join(' ')}" fill="none" stroke="#8B5FBF" stroke-width="1.4" stroke-dasharray="4 5"/>`;}
   for(const e of list) g+=`<circle cx="${x(e.date)}" cy="${y(e.w)}" r="${isSat(e.date)?3:2.5}"
     fill="${isSat(e.date)?'#FFC24A':'#C08FA8'}"/>`;
