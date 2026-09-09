@@ -292,7 +292,7 @@ function render(){
         <div class="stat"><span>BEST TREND</span><strong>${one(a.floor)}</strong></div>
         <div class="stat"><span>MORNINGS</span><strong>${list.length}</strong></div>
       </div></details>
-    <details><summary>THE LOG (${list.length})</summary><div style="margin-top:10px">
+    <details open><summary>THE LOG — ${list.length} MORNING${list.length===1?'':'S'} ON RECORD</summary><div style="margin-top:10px">
       ${list.length===0?'<p class="empty">Nothing logged yet.</p>':[...list].reverse().map((e,i,arr)=>{
         const p=arr[i+1],d=p?e.w-p.w:null;
         return `<div class="row"><div class="d">${fmt(e.date)}</div><div class="w">${one(e.w)}</div>
@@ -489,7 +489,7 @@ async function add(){
   const ex=state.entries.find(e=>e.date===today);
   if(ex)ex.w=v; else state.entries.push({date:today,w:v});
   await save(); render();
-  document.getElementById('toast').textContent=(ex?'Replaced ':'Logged ')+fmt(today)+'.';
+  document.getElementById('toast').textContent=(ex?'Replaced ':'Logged ')+fmt(today)+' — '+state.entries.length+' mornings on record.';
 }
 async function del(d){state.entries=state.entries.filter(e=>e.date!==d);await save();render();}
 async function wipe(){state={entries:[],seeded:true};await save();render();}
